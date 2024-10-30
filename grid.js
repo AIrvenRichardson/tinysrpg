@@ -1,5 +1,21 @@
 //So currently you can render a grid and determine what square your mouse is over. Then it changes colors. The important part is that you can index the rectangles.
 
+class Unit {
+    constructor(cpu, mov, range){
+        this.playerControlled = !cpu;
+        this.mov = mov;
+        this.range = range;
+    }
+}
+
+function getColor(unit){
+    if (unit.playerControlled){
+        return "yellow";
+    }
+    return "Indigo";
+}
+
+
 const RECTSIZE = 40; //The size of the squares on the board
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -20,8 +36,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let selection = false;
     let selectedsq = [0,0];
 
-    board[rows-1][cols-1].color = "green";
-    board[0][0].color = "green";
+    board[rows-1][cols-1].unit = new Unit(false, 4, 1);
+    board[5][5].unit = new Unit(true, 3, 2);
+    board[0][0].unit = new Unit(false, 3, 2);
 
     drawRects();
     
@@ -36,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
         while (j < rows) {
             board.push([]);
             while (i < cols) {
-                board[j].push({x: i * RECTSIZE, y: j * RECTSIZE, w:RECTSIZE, h:RECTSIZE, color: "red"});
+                board[j].push({x: i * RECTSIZE, y: j * RECTSIZE, w:RECTSIZE, h:RECTSIZE, color: "LightGreen", unit: null});
                 i++;
             }
             i = 0;
@@ -47,7 +64,12 @@ document.addEventListener("DOMContentLoaded", () => {
     function drawRects(){
         for (row of board){
             for (e of row){
-                ctx.fillStyle = e.color;
+                if (e.unit != null){
+                    ctx.fillStyle = getColor(e.unit);
+                }
+                else{
+                    ctx.fillStyle = e.color;
+                }
                 ctx.fillRect(e.x, e.y, e.w, e.h);
                 ctx.strokeRect(e.x, e.y, e.w, e.h);
             }
@@ -62,30 +84,33 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    //This function defines what happens on click, if you click on a green square (player) while not selected, it will select them, if you are selected, you can click a blue square to move the green square to it
+    //This function defines what happens on click, if you click on a green square (player) while not selected, it will select them, if you are selected, you can click a DeepSkyBlue square to move the green square to it
     function mouseAction(canvas, evt){
         let mp = getMousePos(canvas, evt);
         if ((mp.x < cols) & (mp.y < rows)){
             
             //Am i trying to move a unit?
             if (selection == false){
-                if (board[mp.y][mp.x].color == "green"){
+                if (board[mp.y][mp.x].unit != null){
                     selection = true
                     selectedsq = [mp.y, mp.x]
-                    bfs(mp.x,mp.y,3,"blue");
+                    bfs(mp.x,mp.y,board[mp.y][mp.x].unit.mov,board[mp.y][mp.x].unit.range,"DeepSkyBlue");
                 }
             }
-            //move a unit to a blue square OR deselect it.
+            //move a unit to a DeepSkyBlue square OR deselect it.
             else{
-                if (board[mp.y][mp.x].color == "blue"){
-                    selection = false
-                    board[selectedsq[0]][selectedsq[1]].color = "red"
-                    bfs(selectedsq[1],selectedsq[0],3,"red");
-                    board[mp.y][mp.x].color = "green"                   
+                if (board[mp.y][mp.x].color == "DeepSkyBlue"){
+                    selection = false;
+                    bfs(selectedsq[1], selectedsq[0], board[selectedsq[0]][selectedsq[1]].unit.mov, board[selectedsq[0]][selectedsq[1]].unit.range, "LightGreen");
+                    if (board[selectedsq[0]][selectedsq[1]].unit.playerControlled){
+                        board[mp.y][mp.x].unit = board[selectedsq[0]][selectedsq[1]].unit;                   
+                        board[selectedsq[0]][selectedsq[1]].unit = null;
+                        board[selectedsq[0]][selectedsq[1]].color = "LightGreen";
+                    }               
                 }
                 else{
                     selection = false
-                    bfs(selectedsq[1],selectedsq[0],3,"red");
+                    bfs(selectedsq[1], selectedsq[0], board[selectedsq[0]][selectedsq[1]].unit.mov, board[selectedsq[0]][selectedsq[1]].unit.range, "LightGreen");
                 }
             } 
             drawRects();         
@@ -93,12 +118,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     //This functions goal is to show you the movement range of a selected unit (currently a green square)
-    function bfs(x,y,range,c){
+    function bfs(x,y,mv,rng,c){
         //two queue bfs that ends after some amount of iterations
         let q1 = [[x,y]];
         let q2 = [];
         let seen = {};
-        let steps = range;
+        let steps = mv+rng;
         
         while (q1.length > 0){
             //get and unpack location
@@ -110,9 +135,14 @@ document.addEventListener("DOMContentLoaded", () => {
             if (steps > 0){
                 for (d of dirs){
                     if (0 <= row+d[0] && row+d[0] < rows && 0 <= col+d[1] && col+d[1] < cols && !([row+d[0],col+d[1]] in seen)){ //fat check for being on the grid
-                        //currently only lets you move over blue or red
-                        if (board[row+d[0]][col+d[1]].color == "red" || board[row+d[0]][col+d[1]].color == "blue"){
-                            board[row+d[0]][col+d[1]].color = c;   
+                        //blocks movement over units
+                        if (board[row+d[0]][col+d[1]].unit == null){
+                            if(steps <= rng && c != "LightGreen"){
+                                board[row+d[0]][col+d[1]].color = "IndianRed"; 
+                            }
+                            else{
+                                board[row+d[0]][col+d[1]].color = c;   
+                            }
                             seen[[row+d[0],col+d[1]]] = 1;
                             q2.push([col+d[1],row+d[0]]);                    
                         }
