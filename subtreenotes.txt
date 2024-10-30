@@ -1,0 +1,7 @@
+These are subtree commands so i can remember them easy
+
+Pull from remote:
+git subtree pull -P Projects/srpg https://github.com/AIrvenRichardson/tinysrpg master --squash
+
+Push to remote:
+git subtree push -P Projects/srpg https://github.com/AIrvenRichardson/tinysrpg master    
