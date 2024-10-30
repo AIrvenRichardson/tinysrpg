@@ -1,0 +1,16 @@
+.column{
+    display: flex;
+    text-align: center;
+    flex-direction: column;
+    align-content: center;
+    width: 100%;
+    justify-content: center;
+}
+
+.board{
+    border: 1px solid black;
+    margin: auto;
+    display: block;
+    width: 800px;
+    height: 360px;
+}
